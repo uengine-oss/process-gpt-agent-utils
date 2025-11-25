@@ -253,10 +253,12 @@ class MementoTool(BaseTool):
     )
     args_schema: Type[MementoQuerySchema] = MementoQuerySchema
     _tenant_id: str = PrivateAttr()
-
+    _proc_inst_id: str = PrivateAttr()
+    
     def __init__(self, tenant_id: str = "localhost", **kwargs):
         super().__init__(**kwargs)
         self._tenant_id = tenant_id
+        self._proc_inst_id = proc_inst_id
         logger.info("\n\n✅ MementoTool 초기화 완료 | tenant_id=%s", self._tenant_id)
 
     def _run(self, query: str) -> str:
@@ -266,7 +268,7 @@ class MementoTool(BaseTool):
             logger.info("🔍 사내문서 검색 시작 | tenant_id=%s, query=%s", self._tenant_id, query)
             resp = requests.get(
                 "https://memento.process-gpt.io/api/retrieve",
-                params={"query": query, "tenant_id": self._tenant_id},
+                params={"query": query, "tenant_id": self._tenant_id, "proc_inst_id": self._proc_inst_id},
                 headers={"Accept": "application/json"},
                 timeout=40,
             )

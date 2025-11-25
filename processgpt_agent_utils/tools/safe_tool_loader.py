@@ -177,11 +177,11 @@ class SafeToolLoader:
             if not self.tenant_id:
                 logger.info("⏭️ MementoTool 로드 생략: tenant_id 없음")
                 return []
-            tool = MementoTool(tenant_id=self.tenant_id)
-            logger.info("✅ MementoTool 로드 완료 | tenant_id=%s", self.tenant_id)
+            tool = MementoTool(tenant_id=self.tenant_id, proc_inst_id=proc_inst_id_var.get())
+            logger.info("✅ MementoTool 로드 완료 | tenant_id=%s proc_inst_id=%s", self.tenant_id, proc_inst_id_var.get())
             return [tool]
         except Exception as e:
-            logger.error("❌ MementoTool 로드 실패 | tenant_id=%s err=%s", self.tenant_id, str(e), exc_info=True)
+            logger.error("❌ MementoTool 로드 실패 | tenant_id=%s proc_inst_id=%s err=%s", self.tenant_id, proc_inst_id_var.get(), str(e), exc_info=True)
             raise
 
     def _load_human_asked(self) -> List:
