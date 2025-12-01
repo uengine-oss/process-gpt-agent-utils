@@ -179,17 +179,8 @@ class CrewAIEventLogger:
                 parsed = self._safe_json(text)
 
                 # ✅ planning 포맷(list_of_plans_per_task) → Markdown 축약
-                #    이 시점에 planning 단계가 완료되었다고 보고 crew_type을 action으로 전환
-                # ! 좀 더 범용적으로 수정이 필요 임시 조취
                 if isinstance(parsed, dict) and "list_of_plans_per_task" in parsed:
                     md = self._format_plans_md(parsed["list_of_plans_per_task"])
-                    # crew_type을 planning → action으로 전환 (향후 이벤트는 action으로 기록)
-                    try:
-                        from .context_manager import crew_type_var
-                        crew_type_var.set("action")
-                        logger.info("🔁 crew_type 전환: planning → action (list_of_plans_per_task 감지)")
-                    except Exception as e:
-                        logger.warning("⚠️ crew_type 전환(planning→action) 중 예외 발생: %s", str(e), exc_info=True)
                     return {"plans": md}
 
                 return {"result": parsed}
