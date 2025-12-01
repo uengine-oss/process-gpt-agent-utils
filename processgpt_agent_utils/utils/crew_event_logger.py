@@ -51,6 +51,28 @@ from .database import save_event_sync, initialize_db
 class CrewAIEventLogger:
     """CrewAI 이벤트 → events 테이블 저장 (단순/가독성 우선)"""
 
+    # --------- 내부 헬퍼: description에서 task_description만 추출 ---------
+    def _extract_task_description_segment(self, raw_desc: Any) -> Any:
+        """
+        LLM이 생성한 description 문자열에서
+        "task_description" ~ "task_expected_output" 사이만 안정적으로 추출한다.
+        - 포맷이 다르거나 실패하면 raw_desc 그대로 반환 (보수적 동작)
+        """
+        if not isinstance(raw_desc, str):
+            return raw_desc
+
+        td_key = '"task_description"'
+        te_key = '"task_expected_output"'
+        start = raw_desc.find(td_key)
+        end = raw_desc.find(te_key)
+        if start == -1 or end == -1 or start >= end:
+            return raw_desc
+
+        # "task_description" 라벨 이후부터 "task_expected_output" 직전까지
+        value_part = raw_desc[start + len(td_key) : end]
+        # 앞의 ':' 및 공백 제거
+        return value_part.lstrip().lstrip(":").strip()
+
     # --------- 공개 엔트리포인트 ---------
     def on_event(self, event: Any, source: Any = None) -> None:
         """
@@ -137,12 +159,15 @@ class CrewAIEventLogger:
             if event_type == "task_started":
                 task = getattr(event, "task", None)
                 agent = getattr(task, "agent", None) if task else None
+                raw_desc = getattr(task, "description", None)
+                task_description = self._extract_task_description_segment(raw_desc)
+
                 return {
                     "role": getattr(agent, "role", None) or "Unknown",
                     "goal": getattr(agent, "goal", None) or "Unknown",
                     "agent_profile": getattr(agent, "profile", None) or "/images/chat-icon.png",
                     "name": getattr(agent, "name", None) or "Unknown",
-                    "task_description": getattr(task, "description", None),
+                    "task_description": task_description,
                 }
 
             if event_type == "task_completed":
