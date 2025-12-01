@@ -135,12 +135,14 @@ class CrewAIEventLogger:
     def _extract_data(self, event: Any, event_type: str) -> Dict[str, Any]:
         try:
             if event_type == "task_started":
-                agent = getattr(getattr(event, "task", None), "agent", None)
+                task = getattr(event, "task", None)
+                agent = getattr(task, "agent", None) if task else None
                 return {
                     "role": getattr(agent, "role", None) or "Unknown",
                     "goal": getattr(agent, "goal", None) or "Unknown",
                     "agent_profile": getattr(agent, "profile", None) or "/images/chat-icon.png",
                     "name": getattr(agent, "name", None) or "Unknown",
+                    "task_description": getattr(task, "description", None),
                 }
 
             if event_type == "task_completed":
