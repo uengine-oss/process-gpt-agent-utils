@@ -103,16 +103,30 @@ class SafeToolLoader:
         
         # 기본 로컬 도구들 로드 (항상)
         logger.info("📦 기본 로컬 도구들 로드 시작 | local_tools=%s", self.local_tools)
-        mem0_tools = self._load_mem0()
-        memento_tools = self._load_memento()
-        human_asked_tools = self._load_human_asked()
-        dmn_rule_tools = self._load_dmn_rule()
-        tools.extend(mem0_tools)
-        tools.extend(memento_tools)
-        tools.extend(human_asked_tools)
-        tools.extend(dmn_rule_tools)
-        logger.info("✅ 기본 로컬 도구들 로드 완료 | mem0=%d memento=%d human_asked=%d dmn_rule=%d total=%d", 
-                   len(mem0_tools), len(memento_tools), len(human_asked_tools), len(dmn_rule_tools), len(tools))
+        local_loader_defs = [
+            ("mem0", self._load_mem0),
+            ("memento", self._load_memento),
+            ("human_asked", self._load_human_asked),
+            ("dmn_rule", self._load_dmn_rule),
+        ]
+        local_counts = {name: 0 for name, _ in local_loader_defs}
+
+        for name, loader in local_loader_defs:
+            try:
+                loaded_tools = loader()
+                tools.extend(loaded_tools)
+                local_counts[name] = len(loaded_tools)
+            except Exception as e:
+                logger.error("❌ %s 로드 실패 → 해당 도구 비활성화 후 계속 진행 | err=%s", name, str(e), exc_info=True)
+
+        logger.info(
+            "✅ 기본 로컬 도구들 로드 완료 | mem0=%d memento=%d human_asked=%d dmn_rule=%d total=%d",
+            local_counts["mem0"],
+            local_counts["memento"],
+            local_counts["human_asked"],
+            local_counts["dmn_rule"],
+            len(tools),
+        )
 
         # ------------------------------
         # [추가] A2A 툴 로드: agent_type == 'a2a' 인 경우만 수행
@@ -147,10 +161,13 @@ class SafeToolLoader:
 
             # MCP: 설정이 있을 경우에만 로딩
             logger.info("🚀 MCP 도구 로드 시작 | key=%s", key)
-            self.warmup_server(key)
-            mcp_tools = self._load_mcp_tool(key)
-            tools.extend(mcp_tools)
-            logger.info("✅ MCP 도구 로드 완료 | key=%s tools_count=%d", key, len(mcp_tools))
+            try:
+                self.warmup_server(key)
+                mcp_tools = self._load_mcp_tool(key)
+                tools.extend(mcp_tools)
+                logger.info("✅ MCP 도구 로드 완료 | key=%s tools_count=%d", key, len(mcp_tools))
+            except Exception as e:
+                logger.error("❌ MCP 도구 로드 실패 → 해당 도구 비활성화 | key=%s err=%s", key, str(e), exc_info=True)
 
         logger.info("🎉 도구 생성 완료 | total_tools=%d tool_names=%s", len(tools), [t.name if hasattr(t, 'name') else str(t) for t in tools])
         return tools

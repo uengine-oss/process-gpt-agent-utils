@@ -255,11 +255,11 @@ class MementoTool(BaseTool):
     _tenant_id: str = PrivateAttr()
     _proc_inst_id: str = PrivateAttr()
     
-    def __init__(self, tenant_id: str = "localhost", **kwargs):
+    def __init__(self, tenant_id: str = "localhost", proc_inst_id: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
         self._tenant_id = tenant_id
-        self._proc_inst_id = proc_inst_id
-        logger.info("\n\n✅ MementoTool 초기화 완료 | tenant_id=%s", self._tenant_id)
+        self._proc_inst_id = proc_inst_id or ""
+        logger.info("\n\n✅ MementoTool 초기화 완료 | tenant_id=%s proc_inst_id=%s", self._tenant_id, self._proc_inst_id)
 
     def _run(self, query: str) -> str:
         logger.info("\n\n🔍 사내문서 검색 시작 | tenant_id=%s", self._tenant_id)
