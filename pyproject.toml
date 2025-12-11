@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "process-gpt-agent-utils"
-version = "0.3.2"
+version = "0.3.3"
 description = "ProcessGPT Agent Utilities - 도구 로더, 지식 관리, 이벤트 로깅, 데이터베이스 유틸리티"
 readme = "README.md"
 requires-python = ">=3.10"

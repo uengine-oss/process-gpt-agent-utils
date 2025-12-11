@@ -145,7 +145,43 @@ class SafeToolLoader:
                 logger.info("⏭️ A2A 도구 로드 생략: 'a2a:' 프리픽스 없음")
 
         # ------------------------------
-        # MCP 도구 로드: JSON 설정이 있을 경우에만 (기존 로직 유지)
+        # MCP 도구 로드: is_default=True인 서버 먼저 로드
+        # ------------------------------
+        loaded_mcp_keys = set()  # 이미 로드된 MCP 서버 키 추적
+        
+        # is_default=True인 MCP 서버들 먼저 로드
+        if self.mcp_config:
+            mcp_servers = self.mcp_config.get("mcpServers", {})
+            default_servers = []
+            for server_key, server_cfg in mcp_servers.items():
+                if isinstance(server_cfg, dict) and server_cfg.get("is_default") is True:
+                    default_servers.append(server_key)
+            
+            if default_servers:
+                logger.info("🔧 기본 MCP 서버들 자동 로드 시작 | default_servers=%s", default_servers)
+                for server_key in default_servers:
+                    key = server_key.strip().lower()
+                    if key in self.local_tools:
+                        logger.info("⏭️ 기본 MCP 서버 로드 생략: 로컬 도구와 충돌 | key=%s", key)
+                        continue
+                    if key.startswith("a2a:"):
+                        logger.info("⏭️ 기본 MCP 서버 로드 생략: A2A는 별도 처리 | key=%s", key)
+                        continue
+                    
+                    logger.info("🚀 기본 MCP 서버 로드 시작 | key=%s", key)
+                    try:
+                        self.warmup_server(key)
+                        mcp_tools = self._load_mcp_tool(key)
+                        tools.extend(mcp_tools)
+                        loaded_mcp_keys.add(key)
+                        logger.info("✅ 기본 MCP 서버 로드 완료 | key=%s tools_count=%d", key, len(mcp_tools))
+                    except Exception as e:
+                        logger.error("❌ 기본 MCP 서버 로드 실패 → 해당 도구 비활성화 | key=%s err=%s", key, str(e), exc_info=True)
+            else:
+                logger.info("⏭️ 기본 MCP 서버 없음: is_default=True인 서버 없음")
+        
+        # ------------------------------
+        # MCP 도구 로드: tool_names에 요청된 도구들 처리
         # ------------------------------
         logger.info("🔧 요청된 도구들 처리 시작 | requested_tools=%s", tool_names)
         for name in tool_names:
@@ -158,6 +194,9 @@ class SafeToolLoader:
             if key.startswith("a2a:"):
                 logger.info("⏭️ 도구 처리 생략: A2A는 상단 분기에서 처리 | key=%s", key)
                 continue
+            if key in loaded_mcp_keys:
+                logger.info("⏭️ 도구 처리 생략: 이미 기본 MCP 서버로 로드됨 | key=%s", key)
+                continue
 
             # MCP: 설정이 있을 경우에만 로딩
             logger.info("🚀 MCP 도구 로드 시작 | key=%s", key)
@@ -165,6 +204,7 @@ class SafeToolLoader:
                 self.warmup_server(key)
                 mcp_tools = self._load_mcp_tool(key)
                 tools.extend(mcp_tools)
+                loaded_mcp_keys.add(key)
                 logger.info("✅ MCP 도구 로드 완료 | key=%s tools_count=%d", key, len(mcp_tools))
             except Exception as e:
                 logger.error("❌ MCP 도구 로드 실패 → 해당 도구 비활성화 | key=%s err=%s", key, str(e), exc_info=True)
