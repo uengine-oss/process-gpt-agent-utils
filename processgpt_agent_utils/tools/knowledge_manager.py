@@ -195,7 +195,7 @@ class Mem0Tool(BaseTool):
             raise ValueError("mem0 requires user_id")
 
         try:
-            results = self._memory.search(query, user_id=self._user_id)
+            results = self._memory.search(query, agent_id=self._user_id)
             hits = results.get("results", [])
 
             THRESHOLD = 0.5
